@@ -1,8 +1,12 @@
 // src/js/game.js
+
+
 export function showGame(container, switchScreen) {
     // -------- Config --------
     const CANVAS_W = 1280, CANVAS_H = 720;     // 16:9 desktop
     const CENTER_X = CANVAS_W / 2, PIZZA_Y = 420;
+
+
     const LAYER_SIZE = 520;                     // how big each ingredient layer is drawn
     const ASSETS = {
         background: "assets/sprites/backgrounds/game_bckgnd.png",
@@ -126,13 +130,30 @@ export function showGame(container, switchScreen) {
             wrap.style.font = "12px monospace";
         }
 
-        wrap.addEventListener("click", onClick);
+        const buttonSound = new Audio('assets/sounds/botton_sound.wav');
+        wrap.addEventListener("click", (e) => {
+            buttonSound.currentTime = 0;
+            buttonSound.play();
+            onClick(e);
+        });
         return wrap;
     }
 
     function toggleTopping(name) {
-        if (placed.has(name)) placed.delete(name);
-        else placed.add(name);
+        if (placed.has(name)) {
+            placed.delete(name);
+        } else {
+            placed.add(name);
+            if (name === "tomato_sauce") {
+                const tomatoSauceSound = new Audio('assets/sounds/sauce_sound.wav');
+                tomatoSauceSound.currentTime = 0;
+                tomatoSauceSound.play();
+            } else if (name === "cheese") {
+                const cheeseSound = new Audio('assets/sounds/sauce_sound.wav');
+                cheeseSound.currentTime = 0;
+                cheeseSound.play();
+            }
+        }
         render();
     }
 

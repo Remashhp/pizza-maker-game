@@ -1,11 +1,9 @@
 // src/js/game.js
 
-
 export function showGame(container, switchScreen) {
     // -------- Config --------
     const CANVAS_W = 1280, CANVAS_H = 720;     // 16:9 desktop
     const CENTER_X = CANVAS_W / 2, PIZZA_Y = 420;
-
 
     const LAYER_SIZE = 520;                     // how big each ingredient layer is drawn
     const ASSETS = {
@@ -29,8 +27,13 @@ export function showGame(container, switchScreen) {
             serve: "assets/sprites/buttons/serve_btn.png",
             throw: "assets/sprites/buttons/throw_btn.png",
         },
+        // Order cards (top-right)
+        orders: {
+            margarita: "assets/sprites/orders/margarita_pizza.png",
+            veggie: "assets/sprites/orders/veggie_pizza.png",
+            pepperoni: "assets/sprites/orders/pepperoni_pizza.png",
+        },
     };
-
 
     // Order recipes (edit if you like)
     const RECIPES = {
@@ -49,16 +52,21 @@ export function showGame(container, switchScreen) {
     topBar.style.top = "12px";
     topBar.style.display = "flex";
     topBar.style.justifyContent = "center";
-    topBar.style.gap = "10px";
+    topBar.style.gap = "12px";
     container.appendChild(topBar);
 
+    // Bottom horizontal ingredient dock
     const leftDock = document.createElement("div");
     leftDock.style.position = "absolute";
-    leftDock.style.left = "16px";
-    leftDock.style.top = "80px";
-    leftDock.style.display = "grid";
-    leftDock.style.gridTemplateColumns = "1fr";
-    leftDock.style.gap = "10px";
+    leftDock.style.left = "0";
+    leftDock.style.right = "0";
+    leftDock.style.bottom = "8px";          // closer to bottom
+    leftDock.style.display = "flex";
+    leftDock.style.flexDirection = "row";
+    leftDock.style.justifyContent = "center";
+    leftDock.style.alignItems = "center";
+    leftDock.style.gap = "10px";            // closer together
+    leftDock.style.zIndex = "2";
     container.appendChild(leftDock);
 
     const canvas = document.createElement("canvas");
@@ -88,7 +96,6 @@ export function showGame(container, switchScreen) {
         });
     }
 
-
     async function preload() {
         // background
         images.background = await loadImage(ASSETS.background).catch(() => null);
@@ -99,19 +106,28 @@ export function showGame(container, switchScreen) {
             images[`ing.${name}`] = await loadImage(path).catch(() => null);
         }
 
+        // orders (cards)
+        for (const [name, path] of Object.entries(ASSETS.orders)) {
+            images[`order.${name}`] = await loadImage(path).catch(() => null);
+        }
+
         render();
     }
 
+    // bigger action buttons (Serve/Throw), slightly smaller ingredient buttons
     function buttonWithIcon(key, label, onClick) {
+        const isAction = (key === "serve" || key === "throw");
+        const size = isAction ? 112 : 104;   // Serve/Throw bigger; ingredients slightly bigger
+
         const wrap = document.createElement("button");
-        wrap.style.width = "72px";
-        wrap.style.height = "72px";
+        wrap.style.width = size + "px";
+        wrap.style.height = size + "px";
         wrap.style.border = "0";
-        wrap.style.borderRadius = "10px";
-        wrap.style.padding = "6px";
-        wrap.style.background = "#2b2b2f";
+        wrap.style.borderRadius = "12px";
+        wrap.style.padding = "0";                 // no inner padding
+        wrap.style.background = "transparent";    // transparent background
         wrap.style.cursor = "pointer";
-        wrap.style.boxShadow = "0 2px 0 #0008";
+        wrap.style.boxShadow = "none";
         wrap.title = label;
 
         const iconPath = ASSETS.buttons[key];
@@ -122,14 +138,16 @@ export function showGame(container, switchScreen) {
             img.style.width = "100%";
             img.style.height = "100%";
             img.style.imageRendering = "pixelated";
+            img.style.borderRadius = "10px";
             img.draggable = false;
             wrap.appendChild(img);
         } else {
             wrap.textContent = label;
             wrap.style.color = "#fff";
-            wrap.style.font = "12px monospace";
+            wrap.style.font = isAction ? "16px monospace" : "14px monospace";
         }
 
+        // keep audio assets intact
         const buttonSound = new Audio('assets/sounds/botton_sound.wav');
         wrap.addEventListener("click", (e) => {
             buttonSound.currentTime = 0;
@@ -177,6 +195,20 @@ export function showGame(container, switchScreen) {
         ctx.drawImage(img, x, Math.round(y - size / 2), size, size);
     }
 
+    // Draw the order image card at the top-right corner (slightly more on top)
+    function drawOrderCardTopRight(img) {
+        if (!img) return;
+        const marginX = 10;
+        const marginY = 0;                 // closer to the top edge
+        const targetW = 260;
+        const ratio = img.height / img.width || 1;
+        const targetH = Math.round(targetW * ratio);
+
+        const x = CANVAS_W - marginX - targetW;
+        const y = marginY;
+        ctx.drawImage(img, x, y, targetW, targetH);
+    }
+
     function render() {
         // background
         if (bgReady) {
@@ -186,23 +218,29 @@ export function showGame(container, switchScreen) {
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         }
 
+        // ---- Pizza stack ----
+        const DOUGH_SIZE = LAYER_SIZE;               // full size for dough
+        const BASE_TOPPING_SIZE = LAYER_SIZE * 0.70; // slightly smaller toppings
+
         // Dough always drawn first
-        drawCentered(images["ing.dough"], PIZZA_Y, LAYER_SIZE);
+        drawCentered(images["ing.dough"], PIZZA_Y, DOUGH_SIZE);
 
-        // Sauce and cheese get priority order
-        if (placed.has("tomato_sauce")) drawCentered(images["ing.tomato_sauce"], PIZZA_Y, LAYER_SIZE);
-        if (placed.has("cheese")) drawCentered(images["ing.cheese"], PIZZA_Y, LAYER_SIZE);
+        // Sauce and cheese first (slightly smaller)
+        if (placed.has("tomato_sauce")) drawCentered(images["ing.tomato_sauce"], PIZZA_Y, BASE_TOPPING_SIZE);
+        if (placed.has("cheese")) drawCentered(images["ing.cheese"], PIZZA_Y, BASE_TOPPING_SIZE);
 
-        // Other toppings (order is stable)
+        // Other toppings
         const others = ["pepperoni", "green_bell_peppers", "olives", "red_onions"];
         for (const t of others) {
-            if (placed.has(t)) drawCentered(images[`ing.${t}`], PIZZA_Y, LAYER_SIZE);
+            if (placed.has(t)) drawCentered(images[`ing.${t}`], PIZZA_Y, BASE_TOPPING_SIZE);
         }
 
-        // HUD text
+        // ---- HUD ----
+        drawOrderCardTopRight(images[`order.${currentOrder}`]);  // order card image
+
         ctx.fillStyle = "#ffffff";
         ctx.font = "16px monospace";
-        ctx.fillText(`Order: ${currentOrder}`, 20, 30);
+        // (Order text removed; order is shown by the image)
         ctx.fillText(`Toppings: ${Array.from(placed).join(", ") || "—"}`, 20, 54);
     }
 
@@ -221,7 +259,7 @@ export function showGame(container, switchScreen) {
         })
     );
 
-    // Left Dock: ingredient buttons (toggle)
+    // Bottom Dock: ingredient buttons (toggle)
     const ingredientOrder = [
         "tomato_sauce",
         "cheese",

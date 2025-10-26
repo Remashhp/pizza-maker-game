@@ -1,8 +1,12 @@
 // src/js/game.js
+
+
 export function showGame(container, switchScreen) {
     // -------- Config --------
     const CANVAS_W = 1280, CANVAS_H = 720;     // 16:9 desktop
     const CENTER_X = CANVAS_W / 2, PIZZA_Y = 420;
+
+
     const LAYER_SIZE = 520;                     // how big each ingredient layer is drawn
     const ASSETS = {
         background: "assets/sprites/backgrounds/game_bckgnd.png",

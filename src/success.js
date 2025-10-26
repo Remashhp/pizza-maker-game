@@ -23,4 +23,7 @@ export function showSuccess(container, switchScreen) {
     menu.onclick = () => switchScreen('start');
     wrap.append(again, menu);
     container.appendChild(wrap);
+
+    const successSound = new Audio('assets/sounds/successful_sound.wav');
+    successSound.play();
 }

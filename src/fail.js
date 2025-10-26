@@ -10,6 +10,10 @@ export function showFail(container, switchScreen) {
     wrap.style.flexDirection = "column";
     container.appendChild(wrap);
 
+    // Play fail sound
+    const failSound = new Audio("assets/sounds/failure_sound2.wav");
+    failSound.play();
+
     // Canvas للخلفية
     const canvas = document.createElement("canvas");
     canvas.width = CANVAS_W;

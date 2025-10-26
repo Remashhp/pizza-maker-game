@@ -34,7 +34,12 @@ export function showStart(container, switchScreen) {
     // 👇 زر Start Game بخلفية صورة
     const btn = document.createElement('button');
     btn.textContent = ''; // نخلي النص فارغ عشان تظهر الصورة فقط
-    btn.onclick = () => switchScreen('game');
+    btn.onclick = () => {
+        // Play button press sound
+        const startSound = new Audio('assets/sounds/botton_sound.wav');
+        startSound.play();
+        switchScreen('game');
+    };
 
     // حجم الزر (تعديل حسب حجم الصورة)
     btn.style.width = '200px';
